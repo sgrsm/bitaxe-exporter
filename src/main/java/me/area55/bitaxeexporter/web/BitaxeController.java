@@ -2,6 +2,7 @@ package me.area55.bitaxeexporter.web;
 
 import me.area55.bitaxeexporter.bitaxe.BitaxeClient;
 import me.area55.bitaxeexporter.metrics.PrometheusMetricsFormatter;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +25,7 @@ public class BitaxeController {
   }
 
   @GetMapping(value = "/bitaxe", produces = "text/plain; version=0.0.4; charset=utf-8")
-  public Mono<ResponseEntity<String>> metrics() {
+  public Mono<@NonNull ResponseEntity<@NonNull String>> metrics() {
     return client.getSystemInfo()
         .map(formatter::format)
         .map(body -> ResponseEntity.ok().contentType(PROMETHEUS_TEXT).body(body));

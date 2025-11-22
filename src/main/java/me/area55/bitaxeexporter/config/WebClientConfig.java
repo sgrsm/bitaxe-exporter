@@ -11,11 +11,11 @@ public class WebClientConfig {
   @Bean
   public WebClient bitaxeWebClient(BitaxeProperties props) {
     // Increase buffer in case the device returns larger payloads in future
-    ExchangeStrategies strategies = ExchangeStrategies.builder()
+    var strategies = ExchangeStrategies.builder()
         .codecs(c -> c.defaultCodecs().maxInMemorySize(512 * 1024))
         .build();
     return WebClient.builder()
-        .baseUrl(props.getBaseUrl())
+        .baseUrl(props.baseUrl())
         .exchangeStrategies(strategies)
         .build();
   }

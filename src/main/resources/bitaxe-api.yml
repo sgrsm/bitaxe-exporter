@@ -53,75 +53,6 @@ components:
 
     SystemInfo:
       type: object
-      required:
-        - ASICModel
-        - apEnabled
-        - autofanspeed
-        - bestDiff
-        - bestSessionDiff
-        - boardVersion
-        - coreVoltage
-        - coreVoltageActual
-        - current
-        - fallbackStratumExtranonceSubscribe
-        - fallbackStratumPort
-        - fallbackStratumSuggestedDifficulty
-        - fallbackStratumURL
-        - fallbackStratumUser
-        - fanrpm
-        - fanspeed
-        - temptarget
-        - rotation
-        - freeHeap
-        - freeHeapInternal
-        - freeHeapSpiram
-        - frequency
-        - hashRate
-        - expectedHashrate
-        - errorPercentage
-        - hostname
-        - idfVersion
-        - invertscreen
-        - isPSRAMAvailable
-        - isUsingFallbackStratum
-        - macAddr
-        - maxPower
-        - minimumFanSpeed
-        - nominalVoltage
-        - overheat_mode
-        - overclockEnabled
-        - poolDifficulty
-        - power
-        - power_fault
-        - runningPartition
-        - sharesAccepted
-        - sharesRejected
-        - sharesRejectedReasons
-        - smallCoreCount
-        - ssid
-        - ipv4
-        - ipv6
-        - stratumExtranonceSubscribe
-        - stratumPort
-        - stratumSuggestedDifficulty
-        - stratumURL
-        - stratumUser
-        - temp
-        - temp2
-        - uptimeSeconds
-        - version
-        - axeOSVersion
-        - voltage
-        - vrTemp
-        - wifiStatus
-        - wifiRSSI
-        - displayTimeout
-        - statsFrequency
-        - blockHeight
-        - scriptsig
-        - networkDifficulty
-        - blockFound
-        - hashrateMonitor
       properties:
         ASICModel:
           type: string
@@ -138,6 +69,9 @@ components:
         bestSessionDiff:
           type: string
           description: Best difficulty achieved in current session, string with unit suffix (K/M/G/T), e.g. "849.82 M"
+        expectedHashrate:
+          type: number
+          description: Expected hashrate
         boardVersion:
           type: string
           description: Hardware board version
@@ -151,8 +85,9 @@ components:
           type: number
           description: Current draw in milliamps
         fallbackStratumExtranonceSubscribe:
-          type: boolean
-          description: Enable fallback pool extranonce subscription
+          type: integer
+          description: Enable fallback pool extranonce subscription (0/1)
+          format: int32
         fallbackStratumPort:
           type: number
           description: Fallback stratum server port
@@ -216,7 +151,7 @@ components:
         maxPower:
           type: integer
           description: Maxmium power draw of the board in watts
-        minimumFanSpeed:
+        minFanSpeed:
           type: integer
           description: Minimum fan speed percentage when using auto fan control
         nominalVoltage:
@@ -264,8 +199,9 @@ components:
           type: string
           description: IPv6 address
         stratumExtranonceSubscribe:
-          type: boolean
-          description: Enable pool extranonce subscription
+          type: integer
+          description: Enable pool extranonce subscription (0/1)
+          format: int32
         stratumPort:
           type: number
           description: Primary stratum server port
@@ -308,6 +244,12 @@ components:
         displayTimeout:
           type: number
           description: Turn off display after timeout
+        display:
+          type: string
+          description: Display model
+        responseTime:
+          type: number
+          description: Response time in milliseconds
         statsFrequency:
           type: number
           description: Statistics frequency in seconds

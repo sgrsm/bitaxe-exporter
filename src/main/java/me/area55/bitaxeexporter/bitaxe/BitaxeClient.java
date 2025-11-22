@@ -1,7 +1,7 @@
 package me.area55.bitaxeexporter.bitaxe;
 
-import jakarta.validation.constraints.NotNull;
 import me.area55.bitaxeexporter.bitaxe.model.SystemInfo;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -16,8 +16,7 @@ public class BitaxeClient {
     this.webClient = bitaxeWebClient;
   }
 
-  @NotNull
-  public Mono<SystemInfo> getSystemInfo() {
+  public Mono<@NonNull SystemInfo> getSystemInfo() {
     return webClient.get()
         .uri("/api/system/info")
         .accept(MediaType.APPLICATION_JSON)

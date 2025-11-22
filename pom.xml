@@ -28,7 +28,7 @@
   </scm>
   <properties>
     <java.version>25</java.version>
-    <openapi.generator.version>7.8.0</openapi.generator.version>
+    <openapi.generator.version>7.17.0</openapi.generator.version>
   </properties>
   <dependencies>
     <dependency>
