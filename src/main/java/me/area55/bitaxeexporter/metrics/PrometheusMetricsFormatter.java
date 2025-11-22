@@ -3,6 +3,8 @@ package me.area55.bitaxeexporter.metrics;
 import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.StringJoiner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import me.area55.bitaxeexporter.bitaxe.model.SharesRejectedReason;
 import me.area55.bitaxeexporter.bitaxe.model.SystemInfo;
@@ -24,6 +26,14 @@ public class PrometheusMetricsFormatter {
         label("hostname", hostname), label("mac", mac)));
 
     // expected hashrate not present in current schema
+
+    // best difficulties (source is a human-readable string with suffix K/M/G/T)
+    // We normalize to a raw difficulty number (unitless) by applying the multiplier.
+    helpType(sb, "bitaxe_best_difficulty", "Best difficulty achieved (normalized; K=1e3,M=1e6,G=1e9,T=1e12)", "gauge");
+    gauge(sb, "bitaxe_best_difficulty", parseMagnitudeNumber(systemInfo.getBestDiff()), labels());
+
+    helpType(sb, "bitaxe_best_session_difficulty", "Best session difficulty (normalized; K=1e3,M=1e6,G=1e9,T=1e12)", "gauge");
+    gauge(sb, "bitaxe_best_session_difficulty", parseMagnitudeNumber(systemInfo.getBestSessionDiff()), labels());
 
     // error percentage
     helpType(sb, "bitaxe_error_percentage", "Hash error percentage", "gauge");
@@ -147,5 +157,39 @@ public class PrometheusMetricsFormatter {
 
   private static String format(BigDecimal d) {
     return String.format(Locale.ROOT, "%s", d.stripTrailingZeros().toPlainString());
+  }
+
+  // Parses values like "1.2 K", "50.2 M", "123.8 G", "10.25 T" (case-insensitive, whitespace optional)
+  // into a BigDecimal normalized by multipliers K=1e3, M=1e6, G=1e9, T=1e12. If unit missing, treats as raw.
+  // Accepts a String input; returns null for null/blank/invalid inputs so the metric is skipped.
+  private static final Pattern MAG_PATTERN = Pattern.compile("^\\s*([0-9]+(?:\\.[0-9]+)?)\\s*([kKmMgGtT])?\\s*$");
+
+  private static BigDecimal parseMagnitudeNumber(String s) {
+    if (s == null) return null;
+    String in = s.trim();
+    if (in.isEmpty()) return null;
+    Matcher m = MAG_PATTERN.matcher(in);
+    if (!m.matches()) return null;
+
+    BigDecimal base;
+    try {
+      base = new BigDecimal(m.group(1));
+    } catch (NumberFormatException e) {
+      return null;
+    }
+    String unit = m.group(2);
+    if (unit == null || unit.isEmpty()) return base;
+    switch (Character.toUpperCase(unit.charAt(0))) {
+      case 'K':
+        return base.multiply(BigDecimal.valueOf(1_000L));
+      case 'M':
+        return base.multiply(BigDecimal.valueOf(1_000_000L));
+      case 'G':
+        return base.multiply(BigDecimal.valueOf(1_000_000_000L));
+      case 'T':
+        return base.multiply(BigDecimal.valueOf(1_000_000_000_000L));
+      default:
+        return base; // fallback
+    }
   }
 }

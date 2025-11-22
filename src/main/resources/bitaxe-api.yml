@@ -133,11 +133,11 @@ components:
           type: number
           description: Automatic fan speed control (0=manual, 1=auto)
         bestDiff:
-          type: number
-          description: Best difficulty achieved
+          type: string
+          description: Best difficulty achieved, string with unit suffix (K/M/G/T), e.g. "14.17 G"
         bestSessionDiff:
-          type: number
-          description: Best difficulty achieved in current session
+          type: string
+          description: Best difficulty achieved in current session, string with unit suffix (K/M/G/T), e.g. "849.82 M"
         boardVersion:
           type: string
           description: Hardware board version
