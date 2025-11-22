@@ -1,0 +1,7 @@
+spring:
+    application:
+        name: bitaxe-exporter
+
+# Configure the Bitaxe device base URL (protocol + host[:port])
+bitaxe:
+  base-url: http://192.168.178.91

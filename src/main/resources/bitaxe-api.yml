@@ -1,0 +1,360 @@
+openapi: 3.1.0
+info:
+  title: ESP-Miner API
+  description: API specification for ESP-Miner HTTP server
+  version: 1.0.0
+  license:
+    name: GNU General Public License version 3
+    url: https://opensource.org/license/gpl-3-0
+
+servers:
+  - url: http://{device_ip}
+    description: ESP-Miner device
+    variables:
+      device_ip:
+        default: "192.168.178.91"
+        description: IP address of the ESP-Miner device
+
+components:
+  schemas:
+    SharesRejectedReason:
+      type: object
+      required:
+        - message
+        - count
+      properties:
+        message:
+          type: string
+          description: Rejection reason from pool
+          examples:
+            - "Job not found"
+        count:
+          type: integer
+          description: Shares rejected for this reason
+
+    HashrateMonitorAsic:
+      type: object
+      required:
+        - total
+        - domains
+        - error
+      properties:
+        total:
+          type: number
+          description: Hashrate
+        domains:
+          type: array
+          description: Hashrate per domain
+          items:
+            type: string
+        error:
+          description: Error hashrate
+          type: number
+
+    SystemInfo:
+      type: object
+      required:
+        - ASICModel
+        - apEnabled
+        - autofanspeed
+        - bestDiff
+        - bestSessionDiff
+        - boardVersion
+        - coreVoltage
+        - coreVoltageActual
+        - current
+        - fallbackStratumExtranonceSubscribe
+        - fallbackStratumPort
+        - fallbackStratumSuggestedDifficulty
+        - fallbackStratumURL
+        - fallbackStratumUser
+        - fanrpm
+        - fanspeed
+        - temptarget
+        - rotation
+        - freeHeap
+        - freeHeapInternal
+        - freeHeapSpiram
+        - frequency
+        - hashRate
+        - expectedHashrate
+        - errorPercentage
+        - hostname
+        - idfVersion
+        - invertscreen
+        - isPSRAMAvailable
+        - isUsingFallbackStratum
+        - macAddr
+        - maxPower
+        - minimumFanSpeed
+        - nominalVoltage
+        - overheat_mode
+        - overclockEnabled
+        - poolDifficulty
+        - power
+        - power_fault
+        - runningPartition
+        - sharesAccepted
+        - sharesRejected
+        - sharesRejectedReasons
+        - smallCoreCount
+        - ssid
+        - ipv4
+        - ipv6
+        - stratumExtranonceSubscribe
+        - stratumPort
+        - stratumSuggestedDifficulty
+        - stratumURL
+        - stratumUser
+        - temp
+        - temp2
+        - uptimeSeconds
+        - version
+        - axeOSVersion
+        - voltage
+        - vrTemp
+        - wifiStatus
+        - wifiRSSI
+        - displayTimeout
+        - statsFrequency
+        - blockHeight
+        - scriptsig
+        - networkDifficulty
+        - blockFound
+        - hashrateMonitor
+      properties:
+        ASICModel:
+          type: string
+          description: ASIC model identifier
+        apEnabled:
+          type: number
+          description: Whether AP mode is enabled (0=no, 1=yes)
+        autofanspeed:
+          type: number
+          description: Automatic fan speed control (0=manual, 1=auto)
+        bestDiff:
+          type: number
+          description: Best difficulty achieved
+        bestSessionDiff:
+          type: number
+          description: Best difficulty achieved in current session
+        boardVersion:
+          type: string
+          description: Hardware board version
+        coreVoltage:
+          type: number
+          description: Configured ASIC core voltage
+        coreVoltageActual:
+          type: number
+          description: Actual measured ASIC core voltage
+        current:
+          type: number
+          description: Current draw in milliamps
+        fallbackStratumExtranonceSubscribe:
+          type: boolean
+          description: Enable fallback pool extranonce subscription
+        fallbackStratumPort:
+          type: number
+          description: Fallback stratum server port
+        fallbackStratumSuggestedDifficulty:
+          type: number
+          description: Fallback pool suggested difficulty
+        fallbackStratumURL:
+          type: string
+          description: Fallback stratum server URL
+        fallbackStratumUser:
+          type: string
+          description: Fallback stratum username
+        fanrpm:
+          type: number
+          description: Current fan speed in RPM
+        fanspeed:
+          type: number
+          description: Current fan speed percentage
+        temptarget:
+          type: number
+          description: Target Temperature for the PID Controller
+        rotation:
+          type: number
+          description: Screen rotation setting (0, 90, 180, 270)
+        freeHeap:
+          type: number
+          description: Available heap memory in bytes
+        freeHeapInternal:
+          type: number
+          description: Available internal heap memory in bytes
+        freeHeapSpiram:
+          type: number
+          description: Available Spiram heap memory in bytes
+        frequency:
+          type: number
+          description: ASIC frequency in MHz
+        hashRate:
+          type: number
+          description: Current hashrate
+        errorPercentage:
+          description: Hash error percentage
+          type: number
+        hostname:
+          type: string
+          description: Device hostname
+        idfVersion:
+          type: string
+          description: ESP-IDF version
+        invertscreen:
+          type: number
+          description: Screen invert setting (0=normal, 1=inverted)
+        isPSRAMAvailable:
+          type: number
+          description: Whether PSRAM is available (0=no, 1=yes)
+        isUsingFallbackStratum:
+          type: number
+          description: Whether using fallback stratum (0=no, 1=yes)
+        macAddr:
+          type: string
+          description: Device MAC address
+        maxPower:
+          type: integer
+          description: Maxmium power draw of the board in watts
+        minimumFanSpeed:
+          type: integer
+          description: Minimum fan speed percentage when using auto fan control
+        nominalVoltage:
+          type: integer
+          description: Nominal board voltage
+        overheat_mode:
+          type: number
+          description: Overheat protection mode
+        overclockEnabled:
+          type: integer
+          description: Set custom voltage/frequency in AxeOS
+        poolDifficulty:
+          type: number
+          description: Current pool difficulty
+        power:
+          type: number
+          description: Power consumption in watts
+        power_fault:
+          type: string
+          description: Voltage regulator fault reason, if any
+        runningPartition:
+          type: string
+          description: Currently active OTA partition
+        sharesAccepted:
+          type: number
+          description: Number of accepted shares
+        sharesRejected:
+          type: number
+          description: Number of rejected shares
+        sharesRejectedReasons:
+          type: array
+          description: Reason(s) shares were rejected
+          items:
+            $ref: '#/components/schemas/SharesRejectedReason'
+        smallCoreCount:
+          type: number
+          description: Number of small cores
+        ssid:
+          type: string
+          description: Connected WiFi network SSID
+        ipv4:
+          type: string
+          description: IPv4 address
+        ipv6:
+          type: string
+          description: IPv6 address
+        stratumExtranonceSubscribe:
+          type: boolean
+          description: Enable pool extranonce subscription
+        stratumPort:
+          type: number
+          description: Primary stratum server port
+        stratumSuggestedDifficulty:
+          type: number
+          description: Pool suggested difficulty
+        stratumURL:
+          type: string
+          description: Primary stratum server URL
+        stratumUser:
+          type: string
+          description: Primary stratum username
+        temp:
+          type: number
+          description: Average chip temperature
+        temp2:
+          type: number
+          description: Average chip temperature from second sensor
+        uptimeSeconds:
+          type: number
+          description: System uptime in seconds
+        version:
+          type: string
+          description: Firmware version
+        axeOSVersion:
+          type: string
+          description: AxeOS version
+        voltage:
+          type: number
+          description: Input voltage
+        vrTemp:
+          type: number
+          description: Voltage regulator temperature
+        wifiStatus:
+          type: string
+          description: WiFi connection status
+        wifiRSSI:
+          type: number
+          description: WiFi signal strength
+        displayTimeout:
+          type: number
+          description: Turn off display after timeout
+        statsFrequency:
+          type: number
+          description: Statistics frequency in seconds
+        blockHeight:
+          type: integer
+          description: Current block height
+        scriptsig:
+          type: string
+          description: Scriptsig extracted from coinbase transaction
+        networkDifficulty:
+          type: number
+          description: Current network difficulty
+        blockFound:
+          type: number
+          description: Whether a block was found (0=no, 1=yes)
+        hashrateMonitor:
+          type: object
+          properties:
+            asics:
+              type: array
+              description: Hashrate register value per ASIC
+              items:
+                $ref: '#/components/schemas/HashrateMonitorAsic'
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized - Client not in allowed network range
+
+    InternalError:
+      description: Internal server error
+
+paths:
+  /api/system/info:
+    get:
+      summary: Get system information
+      description: Returns current system status and information
+      operationId: getSystemInfo
+      tags:
+        - system
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemInfo'
+        '401':
+          description: Unauthorized - Client not in allowed network range
+        '500':
+          description: Internal server error
