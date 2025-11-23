@@ -1,0 +1,41 @@
+# Multi-stage build to produce a tiny native image container for bitaxe-exporter
+
+# 1) Builder with GraalVM (Java 25) + Maven + Native Image
+# Use the image that already contains the Native Image tool so we don't need `gu install`
+FROM ghcr.io/graalvm/native-image-community:25 AS build
+
+WORKDIR /workspace
+
+# No need to install Maven: use the Maven Wrapper provided by the project
+
+# Copy project sources
+COPY . .
+
+# Build native binary (GraalVM Native Image tool is present in this base image)
+# -Pnative activates the native profile defined in pom.xml
+# Use Maven Wrapper to avoid relying on OS package managers in the builder image
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw -B -e -Pnative -DskipTests native:compile-no-fork
+
+
+# 2) Minimal-ish runtime image with zlib
+FROM debian:12-slim AS runtime
+
+# Install runtime deps only (zlib and certs)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    zlib1g \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the native binary
+COPY --from=build /workspace/target/bitaxe-exporter /app/bitaxe-exporter
+
+EXPOSE 8080
+
+ENV BITAXE_BASE_URL=http://192.168.178.91
+
+USER nobody
+
+ENTRYPOINT ["/app/bitaxe-exporter"]

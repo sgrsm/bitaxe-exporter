@@ -29,6 +29,7 @@
   <properties>
     <java.version>25</java.version>
     <openapi.generator.version>7.17.0</openapi.generator.version>
+    <native.buildtools.version>0.11.3</native.buildtools.version>
   </properties>
   <dependencies>
     <dependency>
@@ -53,6 +54,9 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <mainClass>me.area55.bitaxeexporter.BitaxeExporterApplication</mainClass>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.openapitools</groupId>
@@ -111,5 +115,41 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>native</id>
+      <properties>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+            <version>${native.buildtools.version}</version>
+            <executions>
+              <execution>
+                <id>build-native</id>
+                <goals>
+                  <!-- compile-no-fork keeps the same JVM for AOT and native-image -->
+                  <goal>compile-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <mainClass>me.area55.bitaxeexporter.BitaxeExporterApplication</mainClass>
+              <imageName>bitaxe-exporter</imageName>
+              <fallback>false</fallback>
+              <buildArgs>
+                <!-- Reduce image size; add any required flags here -->
+                <buildArg>-H:+AddAllCharsets</buildArg>
+                <buildArg>-Dfile.encoding=UTF-8</buildArg>
+              </buildArgs>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

@@ -1,0 +1,12 @@
+services:
+  bitaxe-exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bitaxe-exporter:21
+    container_name: bitaxe-exporter
+    environment:
+      BITAXE_BASE_URL: "http://192.168.178.91}"
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
