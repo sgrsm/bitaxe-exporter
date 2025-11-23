@@ -25,23 +25,6 @@ public class PrometheusMetricsFormatter {
     var mac = blankIfNull(systemInfo.getMacAddr());
     var ssid = blankIfNull(systemInfo.getSsid());
 
-    // hashrate
-    helpType(sb, "bitaxe_hashrate", "Current hashrate", "gauge");
-    gauge(sb, "bitaxe_hashrate", systemInfo.getHashRate(), labels(
-        label("hostname", hostname), label("mac", mac)));
-
-    // best difficulties (source is a human-readable string with suffix K/M/G/T)
-    // We normalize to a raw difficulty number (unitless) by applying the multiplier.
-    helpType(sb, "bitaxe_best_difficulty", "Best difficulty achieved (normalized; K=1e3,M=1e6,G=1e9,T=1e12)", "gauge");
-    gauge(sb, "bitaxe_best_difficulty", parseMagnitudeNumber(systemInfo.getBestDiff()), labels());
-
-    helpType(sb, "bitaxe_best_session_difficulty", "Best session difficulty (normalized; K=1e3,M=1e6,G=1e9,T=1e12)", "gauge");
-    gauge(sb, "bitaxe_best_session_difficulty", parseMagnitudeNumber(systemInfo.getBestSessionDiff()), labels());
-
-    // error percentage
-    helpType(sb, "bitaxe_error_percentage", "Hash error percentage", "gauge");
-    gauge(sb, "bitaxe_error_percentage", systemInfo.getErrorPercentage(), labels());
-
     // power & voltage & current
     helpType(sb, "bitaxe_power_watts", "Power consumption in watts", "gauge");
     gauge(sb, "bitaxe_power_watts", systemInfo.getPower(), labels());
@@ -55,10 +38,27 @@ public class PrometheusMetricsFormatter {
     // temperatures
     helpType(sb, "bitaxe_temperature_celsius", "Chip temperature", "gauge");
     gauge(sb, "bitaxe_temperature_celsius", systemInfo.getTemp(), labels(label("sensor", "avg")));
-    gauge(sb, "bitaxe_temperature_celsius", systemInfo.getTemp2(), labels(label("sensor", "avg2")));
+//    gauge(sb, "bitaxe_temperature_celsius", systemInfo.getTemp2(), labels(label("sensor", "avg2")));
 
     helpType(sb, "bitaxe_vr_temperature_celsius", "Voltage regulator temperature", "gauge");
     gauge(sb, "bitaxe_vr_temperature_celsius", systemInfo.getVrTemp(), labels());
+
+    // hashrate
+    helpType(sb, "bitaxe_hashrate", "Current hashrate", "gauge");
+    gauge(sb, "bitaxe_hashrate", systemInfo.getHashRate(), labels(
+        label("hostname", hostname), label("mac", mac)));
+
+    // best difficulties (source is a human-readable string with suffix K/M/G/T)
+    // We normalize to a raw difficulty number (unitless) by applying the multiplier.
+    helpType(sb, "bitaxe_best_difficulty", "Best difficulty achieved", "gauge");
+    gauge(sb, "bitaxe_best_difficulty", systemInfo.getBestDiff(), labels());
+
+    helpType(sb, "bitaxe_best_session_difficulty", "Best session difficulty", "gauge");
+    gauge(sb, "bitaxe_best_session_difficulty", systemInfo.getBestSessionDiff(), labels());
+
+    // error percentage
+    helpType(sb, "bitaxe_error_percentage", "Hash error percentage", "gauge");
+    gauge(sb, "bitaxe_error_percentage", systemInfo.getErrorPercentage(), labels());
 
     // fan
     helpType(sb, "bitaxe_fan_rpm", "Fan speed in RPM", "gauge");
@@ -81,13 +81,13 @@ public class PrometheusMetricsFormatter {
     // rejected reasons
     helpType(sb, "bitaxe_shares_rejected_reason_total", "Rejected shares by reason", "counter");
     if (systemInfo.getSharesRejectedReasons() != null) {
-      for (SharesRejectedReason r : systemInfo.getSharesRejectedReasons()) {
-        if (r == null) {
+      for (SharesRejectedReason reason : systemInfo.getSharesRejectedReasons()) {
+        if (reason == null) {
           continue;
         }
-        var count = BigDecimal.valueOf(r.getCount());
+        var count = BigDecimal.valueOf(reason.getCount());
         gaugeAsCounter(sb, "bitaxe_shares_rejected_reason_total", count,
-            labels(label("reason", blankIfNull(r.getMessage()))));
+            labels(label("reason", blankIfNull(reason.getMessage()))));
       }
     }
 
@@ -99,8 +99,8 @@ public class PrometheusMetricsFormatter {
     gauge(sb, "bitaxe_network_difficulty", systemInfo.getNetworkDifficulty(), labels());
 
     // wifi
-    helpType(sb, "bitaxe_wifi_rssi_dbm", "WiFi RSSI", "gauge");
-    gauge(sb, "bitaxe_wifi_rssi_dbm", systemInfo.getWifiRSSI(), labels(label("ssid", ssid)));
+//    helpType(sb, "bitaxe_wifi_rssi_dbm", "WiFi RSSI", "gauge");
+//    gauge(sb, "bitaxe_wifi_rssi_dbm", systemInfo.getWifiRSSI(), labels(label("ssid", ssid)));
 
     // uptime
     helpType(sb, "bitaxe_uptime_seconds", "Uptime in seconds", "counter");
@@ -111,23 +111,23 @@ public class PrometheusMetricsFormatter {
     gauge(sb, "bitaxe_frequency_mhz", systemInfo.getFrequency(), labels());
 
     // memory
-    helpType(sb, "bitaxe_free_heap_bytes", "Free heap bytes", "gauge");
-    gauge(sb, "bitaxe_free_heap_bytes", systemInfo.getFreeHeap(), labels(label("type", "total")));
-    gauge(sb, "bitaxe_free_heap_bytes", systemInfo.getFreeHeapInternal(), labels(label("type", "internal")));
-    gauge(sb, "bitaxe_free_heap_bytes", systemInfo.getFreeHeapSpiram(), labels(label("type", "spiram")));
+//    helpType(sb, "bitaxe_free_heap_bytes", "Free heap bytes", "gauge");
+//    gauge(sb, "bitaxe_free_heap_bytes", systemInfo.getFreeHeap(), labels(label("type", "total")));
+//    gauge(sb, "bitaxe_free_heap_bytes", systemInfo.getFreeHeapInternal(), labels(label("type", "internal")));
+//    gauge(sb, "bitaxe_free_heap_bytes", systemInfo.getFreeHeapSpiram(), labels(label("type", "spiram")));
 
-    // board power/voltage related
-    helpType(sb, "bitaxe_max_power_watts", "Configured maximum board power", "gauge");
-    gauge(sb, "bitaxe_max_power_watts", asBigDecimal(systemInfo.getMaxPower()), labels());
+//    // board power/voltage related
+//    helpType(sb, "bitaxe_max_power_watts", "Configured maximum board power", "gauge");
+//    gauge(sb, "bitaxe_max_power_watts", asBigDecimal(systemInfo.getMaxPower()), labels());
 
-    helpType(sb, "bitaxe_nominal_voltage_volts", "Nominal board voltage", "gauge");
-    gauge(sb, "bitaxe_nominal_voltage_volts", asBigDecimal(systemInfo.getNominalVoltage()), labels());
+//    helpType(sb, "bitaxe_nominal_voltage_volts", "Nominal board voltage", "gauge");
+//    gauge(sb, "bitaxe_nominal_voltage_volts", asBigDecimal(systemInfo.getNominalVoltage()), labels());
 
-    helpType(sb, "bitaxe_core_voltage_volts", "Configured ASIC core voltage", "gauge");
-    gauge(sb, "bitaxe_core_voltage_volts", mVtoV(systemInfo.getCoreVoltage()), labels());
+    helpType(sb, "bitaxe_core_voltage_mv", "Configured ASIC core voltage", "gauge");
+    gauge(sb, "bitaxe_core_voltage_mv", systemInfo.getCoreVoltage(), labels());
 
-    helpType(sb, "bitaxe_core_voltage_actual_volts", "Actual ASIC core voltage", "gauge");
-    gauge(sb, "bitaxe_core_voltage_actual_volts", mVtoV(systemInfo.getCoreVoltageActual()), labels());
+    helpType(sb, "bitaxe_core_voltage_actual_mv", "Actual ASIC core voltage", "gauge");
+    gauge(sb, "bitaxe_core_voltage_actual_mv", systemInfo.getCoreVoltageActual(), labels());
 
     // stratum and pool related
     helpType(sb, "bitaxe_is_using_fallback_stratum", "1 if using fallback stratum", "gauge");
@@ -266,7 +266,7 @@ public class PrometheusMetricsFormatter {
     if (mv == null) {
       return null;
     }
-    return mv.divide(BigDecimal.valueOf(1000L), RoundingMode.UNNECESSARY);
+    return mv.divide(BigDecimal.valueOf(1000L), RoundingMode.HALF_UP);
   }
 
   // Parses values like "1.2 K", "50.2 M", "123.8 G", "10.25 T" (case-insensitive, whitespace optional)

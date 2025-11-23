@@ -37,7 +37,7 @@ components:
       required:
         - total
         - domains
-        - error
+        - errorCount
       properties:
         total:
           type: number
@@ -46,10 +46,10 @@ components:
           type: array
           description: Hashrate per domain
           items:
-            type: string
-        error:
-          description: Error hashrate
-          type: number
+            type: number
+        errorCount:
+          type: integer
+          description: Total error count for this ASIC
 
     SystemInfo:
       type: object
@@ -63,12 +63,15 @@ components:
         autofanspeed:
           type: number
           description: Automatic fan speed control (0=manual, 1=auto)
+        manualFanSpeed:
+          type: integer
+          description: Manual fan speed percentage when auto fan control is disabled
         bestDiff:
-          type: string
-          description: Best difficulty achieved, string with unit suffix (K/M/G/T), e.g. "14.17 G"
+          type: number
+          description: Best difficulty achieved (raw numeric value)
         bestSessionDiff:
-          type: string
-          description: Best difficulty achieved in current session, string with unit suffix (K/M/G/T), e.g. "849.82 M"
+          type: number
+          description: Best difficulty achieved in current session (raw numeric value)
         expectedHashrate:
           type: number
           description: Expected hashrate
@@ -103,6 +106,9 @@ components:
         fanrpm:
           type: number
           description: Current fan speed in RPM
+        fan2rpm:
+          type: integer
+          description: Second fan speed in RPM (0 if not present)
         fanspeed:
           type: number
           description: Current fan speed percentage
@@ -166,6 +172,9 @@ components:
         poolDifficulty:
           type: number
           description: Current pool difficulty
+        poolAddrFamily:
+          type: integer
+          description: Address family for pool connection (e.g. 2 = IPv4)
         power:
           type: number
           description: Power consumption in watts
