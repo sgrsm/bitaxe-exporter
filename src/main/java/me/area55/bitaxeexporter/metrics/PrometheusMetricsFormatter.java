@@ -1,11 +1,16 @@
 package me.area55.bitaxeexporter.metrics;
 
+import static me.area55.bitaxeexporter.metrics.Unit.G;
+import static me.area55.bitaxeexporter.metrics.Unit.K;
+import static me.area55.bitaxeexporter.metrics.Unit.M;
+import static me.area55.bitaxeexporter.metrics.Unit.T;
+
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Locale;
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import me.area55.bitaxeexporter.bitaxe.model.SharesRejectedReason;
 import me.area55.bitaxeexporter.bitaxe.model.SystemInfo;
 import org.springframework.stereotype.Component;
@@ -16,16 +21,14 @@ public class PrometheusMetricsFormatter {
   public String format(SystemInfo systemInfo) {
     var sb = new StringBuilder(2048);
     // Global labels to attach where helpful
-    var hostname = nv(systemInfo.getHostname());
-    var mac = nv(systemInfo.getMacAddr());
-    var ssid = nv(systemInfo.getSsid());
+    var hostname = blankIfNull(systemInfo.getHostname());
+    var mac = blankIfNull(systemInfo.getMacAddr());
+    var ssid = blankIfNull(systemInfo.getSsid());
 
     // hashrate
     helpType(sb, "bitaxe_hashrate", "Current hashrate", "gauge");
     gauge(sb, "bitaxe_hashrate", systemInfo.getHashRate(), labels(
         label("hostname", hostname), label("mac", mac)));
-
-    // expected hashrate not present in current schema
 
     // best difficulties (source is a human-readable string with suffix K/M/G/T)
     // We normalize to a raw difficulty number (unitless) by applying the multiplier.
@@ -79,10 +82,12 @@ public class PrometheusMetricsFormatter {
     helpType(sb, "bitaxe_shares_rejected_reason_total", "Rejected shares by reason", "counter");
     if (systemInfo.getSharesRejectedReasons() != null) {
       for (SharesRejectedReason r : systemInfo.getSharesRejectedReasons()) {
-        if (r == null) continue;
+        if (r == null) {
+          continue;
+        }
         var count = BigDecimal.valueOf(r.getCount());
         gaugeAsCounter(sb, "bitaxe_shares_rejected_reason_total", count,
-            labels(label("reason", nv(r.getMessage()))));
+            labels(label("reason", blankIfNull(r.getMessage()))));
       }
     }
 
@@ -188,12 +193,12 @@ public class PrometheusMetricsFormatter {
     // power fault (as info metric with label)
     helpType(sb, "bitaxe_power_fault_info", "Power fault info (1 if present)", "gauge");
     BigDecimal pf = (systemInfo.getPowerFault() == null || systemInfo.getPowerFault().isBlank()) ? BigDecimal.ZERO : BigDecimal.ONE;
-    gauge(sb, "bitaxe_power_fault_info", pf, labels(label("fault", nv(systemInfo.getPowerFault()))));
+    gauge(sb, "bitaxe_power_fault_info", pf, labels(label("fault", blankIfNull(systemInfo.getPowerFault()))));
 
     return sb.toString();
   }
 
-  private static String nv(String v) {
+  private static String blankIfNull(String v) {
     return v == null ? "" : v;
   }
 
@@ -202,10 +207,14 @@ public class PrometheusMetricsFormatter {
   }
 
   private static String labels(String... kvs) {
-    if (kvs == null || kvs.length == 0) return "";
+    if (kvs == null || kvs.length == 0) {
+      return "";
+    }
     StringJoiner j = new StringJoiner(",", "{", "}");
     for (String kv : kvs) {
-      if (kv == null || kv.isBlank()) continue;
+      if (kv == null || kv.isBlank()) {
+        continue;
+      }
       j.add(kv);
     }
     String s = j.toString();
@@ -218,9 +227,13 @@ public class PrometheusMetricsFormatter {
   }
 
   private static void gauge(StringBuilder sb, String metric, BigDecimal value, String labels) {
-    if (value == null) return;
+    if (value == null) {
+      return;
+    }
     sb.append(metric);
-    if (!labels.isEmpty()) sb.append(labels);
+    if (!labels.isEmpty()) {
+      sb.append(labels);
+    }
     sb.append(' ').append(format(value)).append('\n');
   }
 
@@ -229,7 +242,9 @@ public class PrometheusMetricsFormatter {
   }
 
   private static String escape(String s) {
-    if (s == null) return "";
+    if (s == null) {
+      return "";
+    }
     return s.replace("\\", "\\\\").replace("\n", "\\n").replace("\"", "\\\"");
   }
 
@@ -238,14 +253,20 @@ public class PrometheusMetricsFormatter {
   }
 
   private static BigDecimal asBigDecimal(Number n) {
-    if (n == null) return null;
-    if (n instanceof BigDecimal bd) return bd;
+    if (n == null) {
+      return null;
+    }
+    if (n instanceof BigDecimal bd) {
+      return bd;
+    }
     return new BigDecimal(n.toString());
   }
 
   private static BigDecimal mVtoV(BigDecimal mv) {
-    if (mv == null) return null;
-    return mv.divide(BigDecimal.valueOf(1000L));
+    if (mv == null) {
+      return null;
+    }
+    return mv.divide(BigDecimal.valueOf(1000L), RoundingMode.UNNECESSARY);
   }
 
   // Parses values like "1.2 K", "50.2 M", "123.8 G", "10.25 T" (case-insensitive, whitespace optional)
@@ -254,11 +275,17 @@ public class PrometheusMetricsFormatter {
   private static final Pattern MAG_PATTERN = Pattern.compile("^\\s*([0-9]+(?:\\.[0-9]+)?)\\s*([kKmMgGtT])?\\s*$");
 
   private static BigDecimal parseMagnitudeNumber(String s) {
-    if (s == null) return null;
+    if (s == null) {
+      return null;
+    }
     String in = s.trim();
-    if (in.isEmpty()) return null;
+    if (in.isEmpty()) {
+      return null;
+    }
     Matcher m = MAG_PATTERN.matcher(in);
-    if (!m.matches()) return null;
+    if (!m.matches()) {
+      return null;
+    }
 
     BigDecimal base;
     try {
@@ -267,13 +294,29 @@ public class PrometheusMetricsFormatter {
       return null;
     }
     String unit = m.group(2);
-    if (unit == null || unit.isEmpty()) return base;
-    return switch (Character.toUpperCase(unit.charAt(0))) {
-      case 'K' -> base.multiply(BigDecimal.valueOf(1_000L));
-      case 'M' -> base.multiply(BigDecimal.valueOf(1_000_000L));
-      case 'G' -> base.multiply(BigDecimal.valueOf(1_000_000_000L));
-      case 'T' -> base.multiply(BigDecimal.valueOf(1_000_000_000_000L));
-      default -> base; // fallback
+    if (unit == null || unit.isEmpty()) {
+      return base;
+    }
+    var unitLetter = Unit.valueOf(String.valueOf(Character.toUpperCase(unit.charAt(0))));
+
+    return switch (unitLetter) {
+      case K -> base.multiply(BigDecimal.valueOf(K.factor));
+      case M -> base.multiply(BigDecimal.valueOf(M.factor));
+      case G -> base.multiply(BigDecimal.valueOf(G.factor));
+      case T -> base.multiply(BigDecimal.valueOf(T.factor));
     };
+  }
+}
+
+enum Unit {
+  K(1_000L),
+  M(1_000_000L),
+  G(1_000_000_000L),
+  T(1_000_000_000_000L);
+
+  final long factor;
+
+  Unit(long factor) {
+    this.factor = factor;
   }
 }
