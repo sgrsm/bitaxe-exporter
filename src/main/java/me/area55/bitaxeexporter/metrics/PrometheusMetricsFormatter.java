@@ -1,17 +1,9 @@
 package me.area55.bitaxeexporter.metrics;
 
-import static me.area55.bitaxeexporter.metrics.Unit.G;
-import static me.area55.bitaxeexporter.metrics.Unit.K;
-import static me.area55.bitaxeexporter.metrics.Unit.M;
-import static me.area55.bitaxeexporter.metrics.Unit.T;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Locale;
 import java.util.StringJoiner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import me.area55.bitaxeexporter.bitaxe.model.SharesRejectedReason;
 import me.area55.bitaxeexporter.bitaxe.model.SystemInfo;
 import org.springframework.stereotype.Component;
 
@@ -19,190 +11,275 @@ import org.springframework.stereotype.Component;
 public class PrometheusMetricsFormatter {
 
   public String format(SystemInfo systemInfo) {
-    var sb = new StringBuilder(2048);
-    // Global labels to attach where helpful
-    var hostname = blankIfNull(systemInfo.getHostname());
-    var mac = blankIfNull(systemInfo.getMacAddr());
-    var ssid = blankIfNull(systemInfo.getSsid());
-
-    // power & voltage & current
-    helpType(sb, "bitaxe_power_watts", "Power consumption in watts", "gauge");
-    gauge(sb, "bitaxe_power_watts", systemInfo.getPower(), labels());
-
-    helpType(sb, "bitaxe_voltage_volts", "Input voltage", "gauge");
-    gauge(sb, "bitaxe_voltage_volts", mVtoV(systemInfo.getVoltage()), labels());
-
-    helpType(sb, "bitaxe_current_milliamps", "Current draw in milliamps", "gauge");
-    gauge(sb, "bitaxe_current_milliamps", systemInfo.getCurrent(), labels());
-
-    // temperatures
-    helpType(sb, "bitaxe_temperature_celsius", "Chip temperature", "gauge");
-    gauge(sb, "bitaxe_temperature_celsius", systemInfo.getTemp(), labels(label("sensor", "avg")));
-//    gauge(sb, "bitaxe_temperature_celsius", systemInfo.getTemp2(), labels(label("sensor", "avg2")));
-
-    helpType(sb, "bitaxe_vr_temperature_celsius", "Voltage regulator temperature", "gauge");
-    gauge(sb, "bitaxe_vr_temperature_celsius", systemInfo.getVrTemp(), labels());
-
-    // hashrate
-    helpType(sb, "bitaxe_hashrate", "Current hashrate", "gauge");
-    gauge(sb, "bitaxe_hashrate", systemInfo.getHashRate(), labels(
-        label("hostname", hostname), label("mac", mac)));
-
-    // best difficulties (source is a human-readable string with suffix K/M/G/T)
-    // We normalize to a raw difficulty number (unitless) by applying the multiplier.
-    helpType(sb, "bitaxe_best_difficulty", "Best difficulty achieved", "gauge");
-    gauge(sb, "bitaxe_best_difficulty", systemInfo.getBestDiff(), labels());
-
-    helpType(sb, "bitaxe_best_session_difficulty", "Best session difficulty", "gauge");
-    gauge(sb, "bitaxe_best_session_difficulty", systemInfo.getBestSessionDiff(), labels());
-
-    // error percentage
-    helpType(sb, "bitaxe_error_percentage", "Hash error percentage", "gauge");
-    gauge(sb, "bitaxe_error_percentage", systemInfo.getErrorPercentage(), labels());
-
-    // fan
-    helpType(sb, "bitaxe_fan_rpm", "Fan speed in RPM", "gauge");
-    gauge(sb, "bitaxe_fan_rpm", systemInfo.getFanrpm(), labels());
-
-    helpType(sb, "bitaxe_fan_speed_percent", "Fan speed percentage", "gauge");
-    gauge(sb, "bitaxe_fan_speed_percent", systemInfo.getFanspeed(), labels());
-
-    // expected hashrate
-    helpType(sb, "bitaxe_expected_hashrate", "Expected hashrate", "gauge");
-    gauge(sb, "bitaxe_expected_hashrate", systemInfo.getExpectedHashrate(), labels());
-
-    // shares
-    helpType(sb, "bitaxe_shares_accepted_total", "Accepted shares", "counter");
-    gaugeAsCounter(sb, "bitaxe_shares_accepted_total", systemInfo.getSharesAccepted(), labels());
-
-    helpType(sb, "bitaxe_shares_rejected_total", "Rejected shares", "counter");
-    gaugeAsCounter(sb, "bitaxe_shares_rejected_total", systemInfo.getSharesRejected(), labels());
-
-    // rejected reasons
-    helpType(sb, "bitaxe_shares_rejected_reason_total", "Rejected shares by reason", "counter");
-    if (systemInfo.getSharesRejectedReasons() != null) {
-      for (SharesRejectedReason reason : systemInfo.getSharesRejectedReasons()) {
-        if (reason == null) {
-          continue;
-        }
-        var count = BigDecimal.valueOf(reason.getCount());
-        gaugeAsCounter(sb, "bitaxe_shares_rejected_reason_total", count,
-            labels(label("reason", blankIfNull(reason.getMessage()))));
-      }
+    if (systemInfo == null) {
+      return "";
     }
 
-    // pool & stratum
-    helpType(sb, "bitaxe_pool_difficulty", "Current pool difficulty", "gauge");
-    gauge(sb, "bitaxe_pool_difficulty", systemInfo.getPoolDifficulty(), labels());
+    final var sb = new StringBuilder(2048);
 
-    helpType(sb, "bitaxe_network_difficulty", "Network difficulty", "gauge");
-    gauge(sb, "bitaxe_network_difficulty", systemInfo.getNetworkDifficulty(), labels());
+    // Global labels
+    final var hostname = blankIfNull(systemInfo.getHostname());
+    final var ipv4 = blankIfNull(systemInfo.getIpv4());
 
-    // wifi
-//    helpType(sb, "bitaxe_wifi_rssi_dbm", "WiFi RSSI", "gauge");
-//    gauge(sb, "bitaxe_wifi_rssi_dbm", systemInfo.getWifiRSSI(), labels(label("ssid", ssid)));
-
-    // uptime
-    helpType(sb, "bitaxe_uptime_seconds", "Uptime in seconds", "counter");
-    gaugeAsCounter(sb, "bitaxe_uptime_seconds", systemInfo.getUptimeSeconds(), labels());
-
-    // frequency
-    helpType(sb, "bitaxe_frequency_mhz", "ASIC frequency in MHz", "gauge");
-    gauge(sb, "bitaxe_frequency_mhz", systemInfo.getFrequency(), labels());
-
-    // memory
-//    helpType(sb, "bitaxe_free_heap_bytes", "Free heap bytes", "gauge");
-//    gauge(sb, "bitaxe_free_heap_bytes", systemInfo.getFreeHeap(), labels(label("type", "total")));
-//    gauge(sb, "bitaxe_free_heap_bytes", systemInfo.getFreeHeapInternal(), labels(label("type", "internal")));
-//    gauge(sb, "bitaxe_free_heap_bytes", systemInfo.getFreeHeapSpiram(), labels(label("type", "spiram")));
-
-//    // board power/voltage related
-//    helpType(sb, "bitaxe_max_power_watts", "Configured maximum board power", "gauge");
-//    gauge(sb, "bitaxe_max_power_watts", asBigDecimal(systemInfo.getMaxPower()), labels());
-
-//    helpType(sb, "bitaxe_nominal_voltage_volts", "Nominal board voltage", "gauge");
-//    gauge(sb, "bitaxe_nominal_voltage_volts", asBigDecimal(systemInfo.getNominalVoltage()), labels());
-
-    helpType(sb, "bitaxe_core_voltage_mv", "Configured ASIC core voltage", "gauge");
-    gauge(sb, "bitaxe_core_voltage_mv", systemInfo.getCoreVoltage(), labels());
-
-    helpType(sb, "bitaxe_core_voltage_actual_mv", "Actual ASIC core voltage", "gauge");
-    gauge(sb, "bitaxe_core_voltage_actual_mv", systemInfo.getCoreVoltageActual(), labels());
-
-    // stratum and pool related
-    helpType(sb, "bitaxe_is_using_fallback_stratum", "1 if using fallback stratum", "gauge");
-    gauge(sb, "bitaxe_is_using_fallback_stratum", systemInfo.getIsUsingFallbackStratum(), labels());
-
-    helpType(sb, "bitaxe_psram_available", "1 if PSRAM is available", "gauge");
-    gauge(sb, "bitaxe_psram_available", systemInfo.getIsPSRAMAvailable(), labels());
-
-    helpType(sb, "bitaxe_stratum_suggested_difficulty", "Primary pool suggested difficulty", "gauge");
-    gauge(sb, "bitaxe_stratum_suggested_difficulty", systemInfo.getStratumSuggestedDifficulty(), labels());
-
-    helpType(sb, "bitaxe_fallback_stratum_suggested_difficulty", "Fallback pool suggested difficulty", "gauge");
-    gauge(sb, "bitaxe_fallback_stratum_suggested_difficulty", systemInfo.getFallbackStratumSuggestedDifficulty(), labels());
-
-    helpType(sb, "bitaxe_stratum_port", "Primary stratum port", "gauge");
-    gauge(sb, "bitaxe_stratum_port", systemInfo.getStratumPort(), labels());
-
-    helpType(sb, "bitaxe_fallback_stratum_port", "Fallback stratum port", "gauge");
-    gauge(sb, "bitaxe_fallback_stratum_port", systemInfo.getFallbackStratumPort(), labels());
-
-    helpType(sb, "bitaxe_stratum_extranonce_subscribe", "Primary pool extranonce subscribe (0/1)", "gauge");
-    gauge(sb, "bitaxe_stratum_extranonce_subscribe", asBigDecimal(systemInfo.getStratumExtranonceSubscribe()), labels());
-
-    helpType(sb, "bitaxe_fallback_stratum_extranonce_subscribe", "Fallback pool extranonce subscribe (0/1)", "gauge");
-    gauge(sb, "bitaxe_fallback_stratum_extranonce_subscribe", asBigDecimal(systemInfo.getFallbackStratumExtranonceSubscribe()), labels());
-
-    // display / fan controls
-    helpType(sb, "bitaxe_min_fan_speed_percent", "Minimum fan speed percent (auto mode)", "gauge");
-    gauge(sb, "bitaxe_min_fan_speed_percent", asBigDecimal(systemInfo.getMinFanSpeed()), labels());
-
-    helpType(sb, "bitaxe_temperature_target_celsius", "Target temperature (PID)", "gauge");
-    gauge(sb, "bitaxe_temperature_target_celsius", systemInfo.getTemptarget(), labels());
-
-    helpType(sb, "bitaxe_autofanspeed", "Automatic fan control (0/1)", "gauge");
-    gauge(sb, "bitaxe_autofanspeed", systemInfo.getAutofanspeed(), labels());
-
-    helpType(sb, "bitaxe_display_rotation", "Display rotation", "gauge");
-    gauge(sb, "bitaxe_display_rotation", systemInfo.getRotation(), labels());
-
-    helpType(sb, "bitaxe_display_inverted", "Display inverted (0/1)", "gauge");
-    gauge(sb, "bitaxe_display_inverted", systemInfo.getInvertscreen(), labels());
-
-    helpType(sb, "bitaxe_display_timeout_seconds", "Display timeout seconds (-1 = never)", "gauge");
-    gauge(sb, "bitaxe_display_timeout_seconds", systemInfo.getDisplayTimeout(), labels());
-
-    // response / stats
-    helpType(sb, "bitaxe_response_time_ms", "Bitaxe API response time (ms)", "gauge");
-    gauge(sb, "bitaxe_response_time_ms", systemInfo.getResponseTime(), labels());
-
-    helpType(sb, "bitaxe_stats_frequency_seconds", "Stats update frequency (s)", "gauge");
-    gauge(sb, "bitaxe_stats_frequency_seconds", systemInfo.getStatsFrequency(), labels());
-
-    // other informative counters
-    helpType(sb, "bitaxe_small_core_count", "Small core count", "gauge");
-    gauge(sb, "bitaxe_small_core_count", systemInfo.getSmallCoreCount(), labels());
-
-    helpType(sb, "bitaxe_overclock_enabled", "Overclock enabled (0/1)", "gauge");
-    gauge(sb, "bitaxe_overclock_enabled", asBigDecimal(systemInfo.getOverclockEnabled()), labels());
-
-    helpType(sb, "bitaxe_overheat_mode", "Overheat protection mode", "gauge");
-    gauge(sb, "bitaxe_overheat_mode", systemInfo.getOverheatMode(), labels());
-
-    // power fault (as info metric with label)
-    helpType(sb, "bitaxe_power_fault_info", "Power fault info (1 if present)", "gauge");
-    BigDecimal pf = (systemInfo.getPowerFault() == null || systemInfo.getPowerFault().isBlank()) ? BigDecimal.ZERO : BigDecimal.ONE;
-    gauge(sb, "bitaxe_power_fault_info", pf, labels(label("fault", blankIfNull(systemInfo.getPowerFault()))));
+    appendPowerMetrics(sb, systemInfo, hostname, ipv4);
+    appendTemperatureMetrics(sb, systemInfo, hostname, ipv4);
+    appendHashrateMetrics(sb, systemInfo, hostname, ipv4);
+    appendDifficultyMetrics(sb, systemInfo, hostname, ipv4);
+    appendMemoryAndVoltageMetrics(sb, systemInfo, hostname, ipv4);
+    appendFrequencyMetrics(sb, systemInfo, hostname, ipv4);
+    appendShareMetrics(sb, systemInfo, hostname, ipv4);
+    appendUptimeAndLatencyMetrics(sb, systemInfo, hostname, ipv4);
+    appendThermalControlMetrics(sb, systemInfo, hostname, ipv4);
+    appendFanMetrics(sb, systemInfo, hostname, ipv4);
+    appendBlockchainMetrics(sb, systemInfo, hostname, ipv4);
+    appendFaultMetrics(sb, systemInfo, hostname, ipv4);
 
     return sb.toString();
   }
 
+  // ---------------------------------------------------------------------------
+  // Append groups
+  // ---------------------------------------------------------------------------
+
+  private static void appendPowerMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    gaugeWithHelp(sb,
+        "bitaxe_power_watts",
+        "Power consumption in watts",
+        systemInfo.getPower(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_voltage_volts",
+        "Input voltage",
+        millisToUnit(systemInfo.getVoltage()),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_current_amps",
+        "Current draw in amperes",
+        millisToUnit(systemInfo.getCurrent()),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendTemperatureMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    gaugeWithHelp(sb,
+        "bitaxe_temperature_celsius",
+        "Chip temperature",
+        systemInfo.getTemp(),
+        baseLabels(hostname, ipv4, label("sensor", "avg")));
+
+    gaugeWithHelp(sb,
+        "bitaxe_vr_temperature_celsius",
+        "Voltage regulator temperature",
+        systemInfo.getVrTemp(),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendHashrateMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    // hashrate in GH/s -> normalize to H/s
+    gaugeWithHelp(sb,
+        "bitaxe_hashrate",
+        "Current hashrate (H/s)",
+        ghToHs(systemInfo.getHashRate()),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_error_percentage",
+        "Hash error percentage",
+        systemInfo.getErrorPercentage(),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendDifficultyMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    gaugeWithHelp(sb,
+        "bitaxe_best_difficulty",
+        "Best difficulty achieved",
+        systemInfo.getBestDiff(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_best_session_difficulty",
+        "Best session difficulty",
+        systemInfo.getBestSessionDiff(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_pool_difficulty",
+        "Current pool difficulty",
+        systemInfo.getPoolDifficulty(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_is_using_fallback_stratum",
+        "1 if using fallback stratum",
+        systemInfo.getIsUsingFallbackStratum(),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendMemoryAndVoltageMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    gaugeWithHelp(sb,
+        "bitaxe_free_heap_bytes",
+        "Free heap bytes",
+        systemInfo.getFreeHeap(),
+        baseLabels(hostname, ipv4, label("type", "total")));
+
+    gaugeWithHelp(sb,
+        "bitaxe_core_voltage_mv",
+        "Configured ASIC core voltage",
+        systemInfo.getCoreVoltage(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_core_voltage_actual_mv",
+        "Actual ASIC core voltage",
+        systemInfo.getCoreVoltageActual(),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendFrequencyMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    gaugeWithHelp(sb,
+        "bitaxe_frequency_mhz",
+        "ASIC frequency in MHz",
+        systemInfo.getFrequency(),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendShareMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    counterWithHelp(sb,
+        "bitaxe_shares_accepted_total",
+        "Accepted shares",
+        systemInfo.getSharesAccepted(),
+        baseLabels(hostname, ipv4));
+
+    counterWithHelp(sb,
+        "bitaxe_shares_rejected_total",
+        "Rejected shares",
+        systemInfo.getSharesRejected(),
+        baseLabels(hostname, ipv4));
+
+    // rejected reasons
+    helpType(sb,
+        "bitaxe_shares_rejected_reason_total",
+        "Rejected shares by reason",
+        "counter");
+
+    if (systemInfo.getSharesRejectedReasons() != null) {
+      for (var reason : systemInfo.getSharesRejectedReasons()) {
+        if (reason == null) {
+          continue;
+        }
+        var count = BigDecimal.valueOf(reason.getCount());
+        counter(sb,
+            "bitaxe_shares_rejected_reason_total",
+            count,
+            baseLabels(hostname, ipv4, label("reason", blankIfNull(reason.getMessage()))));
+      }
+    }
+  }
+
+  private static void appendUptimeAndLatencyMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    counterWithHelp(sb,
+        "bitaxe_uptime_seconds_total",
+        "Uptime in seconds",
+        systemInfo.getUptimeSeconds(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_response_time_ms",
+        "Bitaxe API response time (ms)",
+        systemInfo.getResponseTime(),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendThermalControlMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    gaugeWithHelp(sb,
+        "bitaxe_overheat_mode",
+        "Overheat protection mode",
+        systemInfo.getOverheatMode(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_autofanspeed",
+        "Automatic fan control (0/1)",
+        systemInfo.getAutofanspeed(),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendFanMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    gaugeWithHelp(sb,
+        "bitaxe_fan_speed_percent",
+        "Fan speed percentage",
+        systemInfo.getFanspeed(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_fan_rpm",
+        "Fan speed in RPM",
+        systemInfo.getFanrpm(),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendBlockchainMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    gaugeWithHelp(sb,
+        "bitaxe_block_found",
+        "1 if a block was found in this session, else 0",
+        systemInfo.getBlockFound(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_block_height",
+        "Current block height",
+        systemInfo.getBlockHeight(),
+        baseLabels(hostname, ipv4));
+
+    gaugeWithHelp(sb,
+        "bitaxe_network_difficulty",
+        "Network difficulty",
+        systemInfo.getNetworkDifficulty(),
+        baseLabels(hostname, ipv4));
+  }
+
+  private static void appendFaultMetrics(StringBuilder sb, SystemInfo systemInfo,
+      String hostname, String ipv4) {
+    // power fault (as info metric with label)
+    helpType(sb,
+        "bitaxe_power_fault_info",
+        "Power fault info (1 if present)",
+        "gauge");
+
+    var pf = (systemInfo.getPowerFault() == null || systemInfo.getPowerFault().isBlank())
+        ? BigDecimal.ZERO
+        : BigDecimal.ONE;
+
+    gauge(sb,
+        "bitaxe_power_fault_info",
+        pf,
+        baseLabels(hostname, ipv4, label("fault", blankIfNull(systemInfo.getPowerFault()))));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
   private static String blankIfNull(String v) {
-    return v == null ? "" : v;
+    return (v == null || v.isBlank()) ? null : v;
   }
 
   private static String label(String k, String v) {
+    if (v == null) {
+      return null;
+    }
     return k + "=\"" + escape(v) + "\"";
   }
 
@@ -221,6 +298,16 @@ public class PrometheusMetricsFormatter {
     return s.equals("{}") ? "" : s;
   }
 
+  private static String baseLabels(String hostname, String ipv4, String... extra) {
+    String[] all = new String[2 + (extra == null ? 0 : extra.length)];
+    all[0] = label("hostname", hostname);
+    all[1] = label("ipv4", ipv4);
+    if (extra != null && extra.length > 0) {
+      System.arraycopy(extra, 0, all, 2, extra.length);
+    }
+    return labels(all);
+  }
+
   private static void helpType(StringBuilder sb, String metric, String help, String type) {
     sb.append("# HELP ").append(metric).append(' ').append(escape(help)).append('\n');
     sb.append("# TYPE ").append(metric).append(' ').append(type).append('\n');
@@ -237,86 +324,63 @@ public class PrometheusMetricsFormatter {
     sb.append(' ').append(format(value)).append('\n');
   }
 
-  private static void gaugeAsCounter(StringBuilder sb, String metric, BigDecimal value, String labels) {
+  private static void gauge(StringBuilder sb, String metric, Integer value, String labels) {
+    if (value == null) {
+      return;
+    }
+    sb.append(metric);
+    if (!labels.isEmpty()) {
+      sb.append(labels);
+    }
+    sb.append(' ').append(value).append('\n');
+  }
+
+  private static void counter(StringBuilder sb, String metric, BigDecimal value, String labels) {
     gauge(sb, metric, value, labels);
+  }
+
+  private static void gaugeWithHelp(StringBuilder sb, String metric, String help,
+      BigDecimal value, String labels) {
+    helpType(sb, metric, help, "gauge");
+    gauge(sb, metric, value, labels);
+  }
+
+  private static void gaugeWithHelp(StringBuilder sb, String metric, String help,
+      Integer value, String labels) {
+    helpType(sb, metric, help, "gauge");
+    gauge(sb, metric, value, labels);
+  }
+
+  private static void counterWithHelp(StringBuilder sb, String metric, String help,
+      BigDecimal value, String labels) {
+    helpType(sb, metric, help, "counter");
+    counter(sb, metric, value, labels);
   }
 
   private static String escape(String s) {
     if (s == null) {
       return "";
     }
-    return s.replace("\\", "\\\\").replace("\n", "\\n").replace("\"", "\\\"");
+    return s.replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace("\"", "\\\"");
   }
 
   private static String format(BigDecimal d) {
     return String.format(Locale.ROOT, "%s", d.stripTrailingZeros().toPlainString());
   }
 
-  private static BigDecimal asBigDecimal(Number n) {
-    if (n == null) {
-      return null;
-    }
-    if (n instanceof BigDecimal bd) {
-      return bd;
-    }
-    return new BigDecimal(n.toString());
-  }
-
-  private static BigDecimal mVtoV(BigDecimal mv) {
+  private static BigDecimal millisToUnit(BigDecimal mv) {
     if (mv == null) {
       return null;
     }
     return mv.divide(BigDecimal.valueOf(1000L), RoundingMode.HALF_UP);
   }
 
-  // Parses values like "1.2 K", "50.2 M", "123.8 G", "10.25 T" (case-insensitive, whitespace optional)
-  // into a BigDecimal normalized by multipliers K=1e3, M=1e6, G=1e9, T=1e12. If unit missing, treats as raw.
-  // Accepts a String input; returns null for null/blank/invalid inputs so the metric is skipped.
-  private static final Pattern MAG_PATTERN = Pattern.compile("^\\s*([0-9]+(?:\\.[0-9]+)?)\\s*([kKmMgGtT])?\\s*$");
-
-  private static BigDecimal parseMagnitudeNumber(String s) {
-    if (s == null) {
+  private static BigDecimal ghToHs(BigDecimal gh) {
+    if (gh == null) {
       return null;
     }
-    String in = s.trim();
-    if (in.isEmpty()) {
-      return null;
-    }
-    Matcher m = MAG_PATTERN.matcher(in);
-    if (!m.matches()) {
-      return null;
-    }
-
-    BigDecimal base;
-    try {
-      base = new BigDecimal(m.group(1));
-    } catch (NumberFormatException e) {
-      return null;
-    }
-    String unit = m.group(2);
-    if (unit == null || unit.isEmpty()) {
-      return base;
-    }
-    var unitLetter = Unit.valueOf(String.valueOf(Character.toUpperCase(unit.charAt(0))));
-
-    return switch (unitLetter) {
-      case K -> base.multiply(BigDecimal.valueOf(K.factor));
-      case M -> base.multiply(BigDecimal.valueOf(M.factor));
-      case G -> base.multiply(BigDecimal.valueOf(G.factor));
-      case T -> base.multiply(BigDecimal.valueOf(T.factor));
-    };
-  }
-}
-
-enum Unit {
-  K(1_000L),
-  M(1_000_000L),
-  G(1_000_000_000L),
-  T(1_000_000_000_000L);
-
-  final long factor;
-
-  Unit(long factor) {
-    this.factor = factor;
+    return gh.multiply(BigDecimal.valueOf(1_000_000_000L));
   }
 }
