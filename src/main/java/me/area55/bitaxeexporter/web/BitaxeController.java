@@ -6,6 +6,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
@@ -14,7 +15,7 @@ import reactor.core.publisher.Mono;
 @RequestMapping
 public class BitaxeController {
 
-  private static final MediaType PROMETHEUS_TEXT = MediaType.parseMediaType("text/plain; version=0.0.4; charset=utf-8");
+  private static final MediaType PROM_CONTENT = MediaType.parseMediaType("text/plain; version=0.0.4; charset=utf-8");
 
   private final BitaxeClient client;
   private final PrometheusMetricsFormatter formatter;
@@ -24,10 +25,10 @@ public class BitaxeController {
     this.formatter = formatter;
   }
 
-  @GetMapping(value = "/bitaxe", produces = "text/plain; version=0.0.4; charset=utf-8")
-  public Mono<@NonNull ResponseEntity<@NonNull String>> metrics() {
-    return client.getSystemInfo()
+  @GetMapping(value = "/bitaxe/{id}", produces = "text/plain; version=0.0.4; charset=utf-8")
+  public Mono<@NonNull ResponseEntity<@NonNull String>> metrics(@PathVariable String id) {
+    return client.getSystemInfo(id)
         .map(formatter::format)
-        .map(body -> ResponseEntity.ok().contentType(PROMETHEUS_TEXT).body(body));
+        .map(body -> ResponseEntity.ok().contentType(PROM_CONTENT).body(body));
   }
 }

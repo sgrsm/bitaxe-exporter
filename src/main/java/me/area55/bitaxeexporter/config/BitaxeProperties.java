@@ -1,10 +1,11 @@
 package me.area55.bitaxeexporter.config;
 
-import org.jspecify.annotations.NonNull;
+import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 
 @ConfigurationProperties(prefix = "bitaxe")
-public record BitaxeProperties(@NonNull String baseUrl) {
+public record BitaxeProperties(List<BitaxeInstance> instances) {
 
+  public record BitaxeInstance(String id, String baseUrl) {}
 }

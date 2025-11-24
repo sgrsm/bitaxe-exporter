@@ -6,7 +6,10 @@ services:
     image: bitaxe-exporter:jvm25_2
     container_name: bitaxe-exporter
     environment:
-      BITAXE_BASE_URL: "http://192.168.178.91"
+      BITAXE_INSTANCES_0_ID: "1"
+      BITAXE_INSTANCES_0_BASEURL: "http://192.168.178.91"
+      BITAXE_INSTANCES_1_ID: "2"
+      BITAXE_INSTANCES_1_BASEURL: "http://192.168.178.92"
     ports:
       - "8080:8080"
     restart: unless-stopped

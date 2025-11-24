@@ -1,9 +1,10 @@
 package me.area55.bitaxeexporter.config;
 
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
@@ -11,14 +12,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebClientConfig {
 
   @Bean
-  public WebClient bitaxeWebClient(BitaxeProperties props) {
-    // Increase buffer in case the device returns larger payloads in future
-    var strategies = ExchangeStrategies.builder()
-        .codecs(c -> c.defaultCodecs().maxInMemorySize(512 * 1024))
-        .build();
-    return WebClient.builder()
-        .baseUrl(props.baseUrl())
-        .exchangeStrategies(strategies)
-        .build();
+  public Map<String, WebClient> bitaxeWebClients(BitaxeProperties props) {
+    return props.instances().stream()
+        .collect(Collectors.toUnmodifiableMap(BitaxeProperties.BitaxeInstance::id,
+            instance -> WebClient.builder()
+                .baseUrl(instance.baseUrl())
+                .build()));
   }
 }
