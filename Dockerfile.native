@@ -1,5 +1,5 @@
 # 1) Builder: GraalVM with Native Image and Maven Wrapper
-FROM ghcr.io/graalvm/native-image-community:25 AS build
+FROM ghcr.io/graalvm/native-image-community:25-muslib AS build
 
 WORKDIR /workspace
 
@@ -13,11 +13,9 @@ RUN chmod +x mvnw
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -e -Pnative -DskipTests package
 
-# 2) Runtime: small Debian-based image for the native binary
-FROM debian:12-slim AS runtime
 
-# Create non-root user
-RUN groupadd --system app && useradd --system --create-home --gid app app
+# 2) Runtime: distroless base with glibc
+FROM scratch AS runtime
 
 WORKDIR /app
 
@@ -32,7 +30,5 @@ ENV BITAXE_INSTANCES_0_ID=1 \
     BITAXE_INSTANCES_0_BASEURL=http://192.168.178.91 \
     BITAXE_INSTANCES_1_ID=2 \
     BITAXE_INSTANCES_1_BASEURL=http://192.168.178.92
-
-USER app
 
 ENTRYPOINT ["./bitaxe-exporter"]

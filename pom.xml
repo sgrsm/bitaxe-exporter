@@ -131,6 +131,8 @@
 
               <!-- Small quality-of-life flags, tweak later if needed -->
               <buildArgs>
+                <buildArg>--static</buildArg>
+                <buildArg>--libc=musl</buildArg>
                 <!-- For Netty / Java 25 foreign memory cleanup -->
                 <buildArg>-H:+SharedArenaSupport</buildArg>
                 <!-- More helpful error output when something is missing -->
