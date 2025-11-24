@@ -1,14 +1,17 @@
 package me.area55.bitaxeexporter;
 
+import me.area55.bitaxeexporter.bitaxe.model.SystemInfo;
 import me.area55.bitaxeexporter.config.BitaxeProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
+@RegisterReflectionForBinding(SystemInfo.class)
 public class BitaxeExporterApplication {
 
   private static final Logger log = LoggerFactory.getLogger(BitaxeExporterApplication.class);

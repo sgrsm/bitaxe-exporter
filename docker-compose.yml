@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: bitaxe-exporter:jvm25_2
+    image: bitaxe-exporter:native_25_1_debian
     container_name: bitaxe-exporter
     environment:
       BITAXE_INSTANCES_0_ID: "1"

@@ -109,4 +109,49 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>native</id>
+
+      <!-- Optional: don’t waste time running tests in native build -->
+      <properties>
+        <skipTests>true</skipTests>
+      </properties>
+
+      <build>
+        <plugins>
+          <!-- Spring Boot parent already defines this plugin in pluginManagement,
+               so we only need to reference it here -->
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+            <configuration>
+              <!-- Name of produced binary -->
+              <imageName>${project.artifactId}-native</imageName>
+
+              <!-- Small quality-of-life flags, tweak later if needed -->
+              <buildArgs>
+                <!-- For Netty / Java 25 foreign memory cleanup -->
+                <buildArg>-H:+SharedArenaSupport</buildArg>
+                <!-- More helpful error output when something is missing -->
+                <buildArg>--report-unsupported-elements-at-runtime</buildArg>
+                <!-- Reduce reflection config noise -->
+                <buildArg>--trace-class-initialization=me.area55.bitaxeexporter</buildArg>
+              </buildArgs>
+            </configuration>
+
+            <executions>
+                <!-- This binds native:compile-no-fork to the Maven lifecycle when -Pnative is active -->              <execution>
+                <id>build-native</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>compile-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

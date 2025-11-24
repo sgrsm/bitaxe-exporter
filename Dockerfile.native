@@ -1,41 +1,38 @@
-# Multi-stage build to produce a tiny native image container for bitaxe-exporter
-
-# 1) Builder with GraalVM (Java 25) + Maven + Native Image
-# Use the image that already contains the Native Image tool so we don't need `gu install`
+# 1) Builder: GraalVM with Native Image and Maven Wrapper
 FROM ghcr.io/graalvm/native-image-community:25 AS build
 
 WORKDIR /workspace
 
-# No need to install Maven: use the Maven Wrapper provided by the project
-
-# Copy project sources
 COPY . .
 
-# Build native binary (GraalVM Native Image tool is present in this base image)
-# -Pnative activates the native profile defined in pom.xml
-# Use Maven Wrapper to avoid relying on OS package managers in the builder image
+# Make sure Maven wrapper is executable
+RUN chmod +x mvnw
+
+# Build native image using the "native" profile
+# - uses GraalVM Native Build Tools plugin configured in pom.xml
 RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw -B -e -Pnative -DskipTests native:compile-no-fork
+    ./mvnw -B -e -Pnative -DskipTests package
 
-
-# 2) Minimal-ish runtime image with zlib
+# 2) Runtime: small Debian-based image for the native binary
 FROM debian:12-slim AS runtime
 
-# Install runtime deps only (zlib and certs)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    zlib1g \
- && rm -rf /var/lib/apt/lists/*
+# Create non-root user
+RUN groupadd --system app && useradd --system --create-home --gid app app
 
 WORKDIR /app
 
-# Copy the native binary
-COPY --from=build /workspace/target/bitaxe-exporter /app/bitaxe-exporter
+# Copy native binary from builder
+COPY --from=build /workspace/target/bitaxe-exporter-native /app/bitaxe-exporter
 
 EXPOSE 8080
 
-ENV BITAXE_BASE_URL=http://192.168.178.91
+# Environment variables (Spring relaxed binding)
+# Override in docker-compose
+ENV BITAXE_INSTANCES_0_ID=1 \
+    BITAXE_INSTANCES_0_BASEURL=http://192.168.178.91 \
+    BITAXE_INSTANCES_1_ID=2 \
+    BITAXE_INSTANCES_1_BASEURL=http://192.168.178.92
 
-USER nobody
+USER app
 
-ENTRYPOINT ["/app/bitaxe-exporter"]
+ENTRYPOINT ["./bitaxe-exporter"]
