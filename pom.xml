@@ -112,8 +112,7 @@
   <profiles>
     <profile>
       <id>native</id>
-
-      <!-- Optional: don’t waste time running tests in native build -->
+      <!-- use -DskipTests as mvn arg -->
       <properties>
         <skipTests>true</skipTests>
       </properties>
@@ -129,8 +128,9 @@
               <!-- Name of produced binary -->
               <imageName>${project.artifactId}-native</imageName>
 
-              <!-- Small quality-of-life flags, tweak later if needed -->
               <buildArgs>
+                <!-- musl + static build: requires native-image-community:25-muslib as builder -->
+                <!-- If switching to non-muslib image, remove -static and -libc=musl. -->
                 <buildArg>--static</buildArg>
                 <buildArg>--libc=musl</buildArg>
                 <!-- For Netty / Java 25 foreign memory cleanup -->
@@ -143,7 +143,8 @@
             </configuration>
 
             <executions>
-                <!-- This binds native:compile-no-fork to the Maven lifecycle when -Pnative is active -->              <execution>
+              <!-- This binds native:compile-no-fork to the Maven lifecycle when -Pnative is active -->
+              <execution>
                 <id>build-native</id>
                 <phase>package</phase>
                 <goals>
