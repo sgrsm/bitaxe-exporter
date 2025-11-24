@@ -9,11 +9,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Service
-public class BitaxeClient {
+public class BitaxeService {
 
   private final Map<String, WebClient> clients;
 
-  public BitaxeClient(Map<String, WebClient> bitaxeWebClients) {
+  public BitaxeService(Map<String, WebClient> bitaxeWebClients) {
     this.clients = bitaxeWebClients;
   }
 

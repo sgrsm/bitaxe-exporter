@@ -1,6 +1,6 @@
 package me.area55.bitaxeexporter.web;
 
-import me.area55.bitaxeexporter.bitaxe.BitaxeClient;
+import me.area55.bitaxeexporter.bitaxe.BitaxeService;
 import me.area55.bitaxeexporter.metrics.PrometheusMetricsFormatter;
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.MediaType;
@@ -17,10 +17,10 @@ public class BitaxeController {
 
   private static final MediaType PROM_CONTENT = MediaType.parseMediaType("text/plain; version=0.0.4; charset=utf-8");
 
-  private final BitaxeClient client;
+  private final BitaxeService client;
   private final PrometheusMetricsFormatter formatter;
 
-  public BitaxeController(BitaxeClient client, PrometheusMetricsFormatter formatter) {
+  public BitaxeController(BitaxeService client, PrometheusMetricsFormatter formatter) {
     this.client = client;
     this.formatter = formatter;
   }
