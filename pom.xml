@@ -66,23 +66,21 @@
               <inputSpec>${project.basedir}/src/main/resources/bitaxe-api.yml</inputSpec>
               <generatorName>java</generatorName>
               <library>webclient</library>
-              <apiPackage>me.area55.bitaxeexporter.bitaxe.api</apiPackage>
               <modelPackage>me.area55.bitaxeexporter.bitaxe.model</modelPackage>
-              <invokerPackage>me.area55.bitaxeexporter.bitaxe.invoker</invokerPackage>
               <output>${project.build.directory}/generated-sources/openapi</output>
               <generateApis>false</generateApis>
               <generateModels>true</generateModels>
               <generateSupportingFiles>false</generateSupportingFiles>
+              <skipValidateSpec>false</skipValidateSpec>
+              <generateModelTests>false</generateModelTests>
+              <generateModelDocumentation>false</generateModelDocumentation>
               <configOptions>
                 <useJakartaEe>true</useJakartaEe>
                 <dateLibrary>java8</dateLibrary>
                 <serializableModel>true</serializableModel>
                 <booleanGetterPrefix>is</booleanGetterPrefix>
+                <hideGenerationTimestamp>true</hideGenerationTimestamp>
               </configOptions>
-              <additionalProperties>hideGenerationTimestamp=true</additionalProperties>
-              <skipValidateSpec>false</skipValidateSpec>
-              <generateModelTests>false</generateModelTests>
-              <generateModelDocumentation>false</generateModelDocumentation>
             </configuration>
           </execution>
         </executions>
@@ -131,6 +129,7 @@
               <buildArgs>
                 <!-- musl + static build: requires native-image-community:25-muslib as builder -->
                 <!-- If switching to non-muslib image, remove -static and -libc=musl. -->
+                <!-- Linux only - remove/comment if building on non-Linux -->
                 <buildArg>--static</buildArg>
                 <buildArg>--libc=musl</buildArg>
                 <!-- For Netty / Java 25 foreign memory cleanup -->
