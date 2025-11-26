@@ -2,7 +2,7 @@ services:
   bitaxe-exporter:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.native
     image: bitaxe-exporter:native_25_1_debian
     container_name: bitaxe-exporter
     environment:
